@@ -7,7 +7,6 @@ LDFLAGS ?= -lpcap
 
 -include $(LAB_ROOT)/lib/Makefile
 
-
 %.d: %.cpp
 	@set -e; \
 	$(RM) $@; \

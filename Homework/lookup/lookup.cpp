@@ -4,6 +4,8 @@
 
 #include <list>
 
+//#include "ending.h"
+
 using namespace std;
 
 /*
@@ -24,14 +26,10 @@ using namespace std;
 
 list<RoutingTableEntry> routing_table;
 const uint32_t masks[33] = {
-  0, 0x80000000, 0xc0000000, 0xe0000000, 0xf0000000, 
-  0xf8000000, 0xfc000000, 0xfe000000, 0xff000000, 
-  0xff800000, 0xffc00000, 0xffe00000, 0xfff00000, 
-  0xfff80000, 0xfffc0000, 0xfffe0000, 0xffff0000, 
-  0xffff8000, 0xffffc000, 0xffffe000, 0xfffff000, 
-  0xfffff800, 0xfffffc00, 0xfffffe00, 0xffffff00, 
-  0xffffff80, 0xffffffc0, 0xffffffe0, 0xfffffff0, 
-  0xfffffff8, 0xfffffffc, 0xfffffffe, 0xffffffff
+  0, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff,
+  0x80ff, 0xc0ff, 0xe0ff, 0xf0ff, 0xf8ff, 0xfcff, 0xfeff, 0xffff,
+  0x80ffff, 0xc0ffff, 0xe0ffff, 0xf0ffff, 0xf8ffff, 0xfcffff, 0xfeffff, 0xffffff,
+  0x80ffffff, 0xc0ffffff, 0xe0ffffff, 0xf0ffffff, 0xf8ffffff, 0xfcffffff, 0xfeffffff, 0xffffffff,
 };
 
 /**
@@ -74,14 +72,15 @@ bool match(uint32_t addr, const RoutingTableEntry& entry) {
  */
 bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   // TODO:
-  uint32_t mx_len = -1;
-  *nexthop = 0;
+  bool found = false;
+  uint32_t mx_len = 0;
   for (auto it = routing_table.begin(); it != routing_table.end(); ++it) {
     if (it->len > mx_len && match(addr, *it)) {
+      found = true;
       *if_index = it->if_index;
       *nexthop = it->nexthop;
       mx_len = it->len;
     }
   }
-  return *nexthop;
+  return found;
 }
