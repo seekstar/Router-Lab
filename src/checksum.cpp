@@ -1,15 +1,15 @@
 #include "checksum.h"
 #include "ending.h"
 
-uint16_t checksum(uint8_t* packet, size_t len) {
+uint16_t checksum(uint8_t* packet, size_t head_len) {
     uint32_t sum = 0;
-    len >>= 1;
+    head_len >>= 1;
     for (int i = 0; i < 5; ++i) {
         sum += be16(packet);
         packet += 2;
     }
     packet += 2;
-    for (int i = 6; i < len; ++i) {
+    for (int i = 6; i < head_len; ++i) {
         sum += be16(packet);
         packet += 2;
     }
@@ -18,6 +18,10 @@ uint16_t checksum(uint8_t* packet, size_t len) {
     }
     return ~sum;
 }
+uint16_t checksum(uint8_t* packet) {
+    return checksum(packet, (*packet & 0xf) * 4);
+}
+
 /**
  * @brief 进行 IP 头的校验和的验证
  * @param packet 完整的 IP 头和载荷

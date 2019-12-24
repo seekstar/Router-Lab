@@ -4,5 +4,6 @@
 #include <stdint.h>
 
 uint16_t be16(const uint8_t* a);
+void wbe16(uint8_t* a, uint16_t x);
 
 #endif

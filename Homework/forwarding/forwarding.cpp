@@ -1,7 +1,5 @@
-#include <stdint.h>
-#include <stdlib.h>
-
-extern bool validateIPChecksum(uint8_t *packet, size_t len);
+#include "checksum.h"
+#include "ending.h"
 
 /**
  * @brief 进行转发时所需的 IP 头的更新：
@@ -17,5 +15,9 @@ bool forward(uint8_t *packet, size_t len) {
   if (!validateIPChecksum(packet, len))
     return false;
   
-  if (be16)
+  if (packet[8] <= 1)
+    return false;
+  --packet[8];
+  wbe16(packet + 10, checksum(packet));
+  return true;
 }

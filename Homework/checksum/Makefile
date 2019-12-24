@@ -6,8 +6,6 @@ LDFLAGS ?= -lpcap
 
 -include $(LAB_ROOT)/lib/Makefile
 
-grade: checksum
-	python3 grade.py
 
 %.d: %.cpp
 	@set -e; \
@@ -20,6 +18,11 @@ grade: checksum
 
 %.o: %.cpp %.d
 	$(CXX) $(CXXFLAGS) -c -I$(INCLUDE) $< -o $@
+
+
+
+grade: checksum
+	python3 grade.py
 
 hal.o: $(LAB_ROOT)/HAL/src/stdio/router_hal.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
