@@ -1,10 +1,6 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "checksum.h"
+#include "ending.h"
 
-uint16_t be16(const uint8_t* a) {
-    return ((uint16_t)a[0] << 8) | a[1];
-}
 uint16_t checksum(uint8_t* packet, size_t len) {
     uint32_t sum = 0;
     len >>= 1;
@@ -30,7 +26,6 @@ uint16_t checksum(uint8_t* packet, size_t len) {
  */
 bool validateIPChecksum(uint8_t *packet, size_t packet_len) {
   // TODO:
-  //size_t head_len = *packet >> 4;
   size_t head_len = (*packet & 0xf) * 4;
   if (head_len > packet_len) {
       return false;

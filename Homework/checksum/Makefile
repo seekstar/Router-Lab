@@ -4,6 +4,9 @@ BACKEND ?= STDIO
 CXXFLAGS ?= --std=c++11 -I $(LAB_ROOT)/HAL/include -DROUTER_BACKEND_$(BACKEND)
 LDFLAGS ?= -lpcap
 
+INCLUDE ?= $(LAB_ROOT)/include
+SRC ?= $(LAB_ROOT)/src
+
 .PHONY: all clean grade
 all: checksum
 
@@ -15,6 +18,9 @@ grade: checksum
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
+
+$(SRC)/checksum.o: $(SRC)/checksum.cpp $(INCLUDE)/checksum.h $(INCLUDE)/ending.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 hal.o: $(LAB_ROOT)/HAL/src/stdio/router_hal.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@

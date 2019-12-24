@@ -16,10 +16,13 @@ grade: forwarding
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
+../checksum/checksum.o: ../checksum/checksum.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
+
 hal.o: $(LAB_ROOT)/HAL/src/stdio/router_hal.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-forwarding: forwarding.o main.o hal.o
+forwarding: forwarding.o main.o hal.o ../checksum/checksum.o
 	$(CXX) $^ -o $@ $(LDFLAGS) 
 
 std: std.o main.o hal.o
