@@ -4,29 +4,69 @@ BACKEND ?= STDIO
 CXXFLAGS ?= --std=c++11 -I $(LAB_ROOT)/HAL/include -DROUTER_BACKEND_$(BACKEND)
 LDFLAGS ?= -lpcap
 
+
+
+CC ?= g++
+RM	?= rm
+
 INCLUDE ?= $(LAB_ROOT)/include
+
 SRC ?= $(LAB_ROOT)/src
+SRCS		:= $(wildcard $(SRC)/*.cpp)
 
-.PHONY: all clean grade
-all: checksum
+DEP ?= $(LAB_ROOT)/dep
+DEPS		:= $(patsubst $(SRC)%.cpp,$(DEP)/%.d,$(SRCS))
 
-clean:
-	rm -f *.o checksum std
+OBJ ?= $(LAB_ROOT)/obj
+OBJS	:= $(patsubst $(SRC)/%.cpp,$(OBJ)/%.o,$(SRCS))
+
+
+clean_share:
+	$(RM) $(DEP)/* $(OBJ)/*
+
+$(DEP)/%.d: $(SRC)%.cpp
+	@set -e; \
+	$(RM) $@; \
+	$(CC) -MM -I$(INCLUDE) $< > $@.$$$$; \
+	sed 's,^.*:,$@ $(OBJ)/&,g' < $@.$$$$ > $@; \
+	$(RM) $@.$$$$
+
+-include $(DEPS)
+
+$(OBJ)/%.o: $(SRC)/%.cpp $(DEP)/%.d
+	$(CC) $(CXXFLAGS) -c -I$(INCLUDE) $< -o $@
+
+.PHONY: clean_share
+
+
 
 grade: checksum
 	python3 grade.py
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $^ -o $@
+%.d: %.cpp
+	@set -e; \
+	$(RM) $@; \
+	$(CC) -MM $(CXXFLAGS) -I$(INCLUDE) $< > $@.$$$$; \
+	sed 's,^.*:,$@ &,g' < $@.$$$$ > $@; \
+	$(RM) $@.$$$$
 
-$(SRC)/checksum.o: $(SRC)/checksum.cpp $(INCLUDE)/checksum.h $(INCLUDE)/ending.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+-include $(patsubst %.cpp,%.d,$(wildcard *.cpp))
+
+%.o: %.cpp %.d
+	$(CXX) $(CXXFLAGS) -c -I$(INCLUDE) $< -o $@
 
 hal.o: $(LAB_ROOT)/HAL/src/stdio/router_hal.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-checksum: checksum.o main.o hal.o
-	$(CXX) $^ -o $@ $(LDFLAGS) 
+checksum: main.o hal.o $(OBJS)
+	$(CXX) $^ -o $@ $(LDFLAGS)
 
 std: std.o main.o hal.o
-	$(CXX) $^ -o $@ $(LDFLAGS) 
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+all: checksum
+
+clean: clean_share
+	$(RM) *.o *.d *.d.* checksum std
+
+.PHONY: all clean grade
