@@ -1,5 +1,6 @@
 #include "checksum.h"
 #include "ending.h"
+#include "myip.h"
 
 uint16_t checksum(uint8_t* packet, size_t head_len) {
     uint32_t sum = 0;
@@ -19,7 +20,7 @@ uint16_t checksum(uint8_t* packet, size_t head_len) {
     return ~sum;
 }
 uint16_t checksum(uint8_t* packet) {
-    return checksum(packet, (*packet & 0xf) * 4);
+    return checksum(packet, ip_head_len(packet));
 }
 
 /**
@@ -30,7 +31,7 @@ uint16_t checksum(uint8_t* packet) {
  */
 bool validateIPChecksum(uint8_t *packet, size_t packet_len) {
   // TODO:
-  size_t head_len = (*packet & 0xf) * 4;
+  size_t head_len = ip_head_len(packet);
   if (head_len > packet_len) {
       return false;
   }

@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "ending.h"
+#include "myip.h"
+
 /*
   在头文件 rip.h 中定义了如下的结构体：
   #define RIP_MAX_ENTRY 25
@@ -45,6 +48,22 @@
  */
 bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   // TODO:
+  if (be16(packet + 2) > len) {
+    //Total length > len
+    return false;
+  }
+  uint32_t ip_head_length = ip_head_len(packet);
+  output->numEntries = (len - (ip_head_length + 8 + 2)) / 20;
+  output->command = packet[ip_head_length + 8];
+  if ((output->command != 1 && output->command != 2) || 
+      packet[ip_head_length + 9] != 2 || //Version != RIPv2
+      (packet[ip_head_length + 10] || packet[ip_head_length + 11])  //Zero != 0
+      )  //
+    return false;
+  packet += ip_head_length + 8 + 4;
+  for (uint32_t i = 0; i < output->numEntries; ++i) {
+    if (be16(packet))
+  }
   return false;
 }
 
