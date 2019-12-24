@@ -62,7 +62,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
     return false;
   packet += ip_head_length + 8 + 4;
   for (uint32_t i = 0; i < output->numEntries; ++i) {
-    if (be16(packet))
+    if (be16(packet) )
   }
   return false;
 }
