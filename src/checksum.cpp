@@ -2,22 +2,23 @@
 #include "myendian.h"
 #include "myip.h"
 
-uint16_t checksum(uint8_t* packet, size_t head_len) {
+uint16_t checksum(uint8_t* packet, size_t head_len, size_t checksum_pos) {
     uint32_t sum = 0;
-    head_len >>= 1;
-    for (int i = 0; i < 5; ++i) {
-        sum += rbe16(packet);
-        packet += 2;
+    size_t i;
+    for (i = 0; i < checksum_pos; i += 2) {
+        sum += rbe16(packet + i);
     }
-    packet += 2;
-    for (int i = 6; i < head_len; ++i) {
-        sum += rbe16(packet);
-        packet += 2;
+    for (i = checksum_pos + 2; i < head_len; i += 2) {
+        sum += rbe16(packet + i);
     }
     while (sum >> 16) {
         sum = (sum & 0xffff) + (sum >> 16);
     }
     return ~sum;
+}
+
+uint16_t checksum(uint8_t* packet, size_t head_len) {
+    checksum(packet, head_len, 10);
 }
 uint16_t checksum(uint8_t* packet) {
     return checksum(packet, ip_head_len(packet));
@@ -37,4 +38,8 @@ bool validateIPChecksum(uint8_t *packet, size_t packet_len) {
   }
 
   return checksum(packet, head_len) == rbe16(packet + 10);
+}
+
+uint16_t checksum_udp(uint8_t* packet) {
+    return checksum(packet, 8, 6);
 }

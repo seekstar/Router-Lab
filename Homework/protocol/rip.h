@@ -13,7 +13,7 @@ typedef struct {
 typedef struct {
   uint32_t numEntries;
   // all fields below are big endian
-  uint8_t command;
+  uint8_t command;  //1 for request, 2 for response
   // we don't store 'version', as it is always 2
   // we don't store 'zero', as it is always 0
   RipEntry entries[RIP_MAX_ENTRY];

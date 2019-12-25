@@ -284,7 +284,7 @@ int HAL_ReceiveIPPacket(int if_index_mask, uint8_t *buffer, size_t length,
 }
 
 int HAL_SendIPPacket(int if_index, uint8_t *buffer, size_t length,
-                     macaddr_t dst_mac) {
+                     const macaddr_t dst_mac) {
   if (!inited) {
     return HAL_ERR_CALLED_BEFORE_INIT;
   }

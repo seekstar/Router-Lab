@@ -6,12 +6,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <list>
+#include "checksum.h"
+
+using namespace std;
+
+// when testing, you can change 30s to 5s
+//timer for sending routing table
+#define TIMER_SRT 30
+
+//#define RIP_MAC_BE 0x0900005e0001
+const uint8_t RIP_MAC_BE[6] = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09};
+const in_addr_t RIP_IP_BE = 0xe0000009;
+
 extern bool validateIPChecksum(uint8_t *packet, size_t len);
 extern void update(bool insert, RoutingTableEntry entry);
 extern bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index);
 extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
+
+extern list<RoutingTableEntry> routing_table;
+extern const uint32_t masks_be[33];
 
 uint8_t packet[2048];
 uint8_t output[2048];
@@ -22,6 +38,54 @@ uint8_t output[2048];
 // 你可以按需进行修改，注意端序
 in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0100000a, 0x0101000a, 0x0102000a,
                                      0x0103000a};
+
+uint16_t ip_id_counter = 0;
+
+
+
+uint32_t GetRoutingTable(RipPacket& rip) {
+  rip.numEntries = routing_table.size();
+  rip.command = 2;  //response
+  uint32_t i = 0;
+  for (const RoutingTableEntry& entry : routing_table) {
+    rip.entries[i++] = {
+      .addr = entry.addr,
+      .mask = masks_be[entry.len],
+      .nexthop = entry.nexthop,
+      .metric = entry.metric
+    };
+  }
+}
+//Fill ip and udp header of rip
+//n rip entries
+uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n) {
+  // Fill IP headers
+  *(ip++) = 0x45;
+  *(ip++) = 0xc0;
+  *(uint16_t*)ip = htobe16(20 + 8 + 4 + n * 20);  //Total Length
+  ip += 2;
+  *(uint16_t*)ip = ++ip_id_counter; //identification
+  ip += 2;
+  *(uint16_t*)ip = 0x4000;  //Flags: Don't fragment
+  ip += 2;
+  *(ip++) = 1;  //TTL
+  *(ip++) = 0x11; //UDP
+  ip += 2;  //checksum
+  *(uint32_t*)ip = addrs[if_index]; //source
+  ip += 4;
+  *(uint32_t*)ip = RIP_IP_BE; //Destination
+  *(uint16_t*)(ip - 6) = checksum(ip - 16);
+  ip += 4;
+
+  // Fill UDP headers
+  // port = 520
+  *(uint16_t*)ip = htobe16(520);  //source port
+  *(uint16_t*)(ip + 2) = htobe16(520);  //destination port
+  *(uint16_t*)(ip + 4) = htobe16(8 + 4 + n * 20);  //Length
+  *(uint16_t*)(ip + 6) = checksum_udp(ip);
+
+  return 20 + 8;
+}
 
 int main(int argc, char *argv[]) {
   // 0a.
@@ -49,13 +113,28 @@ int main(int argc, char *argv[]) {
   uint64_t last_time = 0;
   while (1) {
     uint64_t time = HAL_GetTicks();
-    // when testing, you can change 30s to 5s
-    if (time > last_time + 30 * 1000) {
-      // TODO: send complete routing table to every interface
+    if (time > last_time + TIMER_SRT * 1000) {
+      // DONE: send complete routing table to every interface
       // ref. RFC2453 Section 3.8
       // multicast MAC for 224.0.0.9 is 01:00:5e:00:00:09
-      printf("30s Timer\n");
-      // TODO: print complete routing table to stdout/stderr
+      printf("%ds Timer\n", TIMER_SRT);
+
+      RipPacket rip;
+      GetRoutingTable(rip);
+      //can optimize
+      uint32_t len = assemble(&rip, packet + 20 + 8 + 4);
+      for (uint32_t i = 0; i < N_IFACE_ON_BOARD; ++i) {
+        fill_header_of_rip(packet, i, rip.numEntries);
+        HAL_SendIPPacket(i, packet, len, RIP_MAC_BE);
+      }
+
+      // DONE: print complete routing table to stdout/stderr
+      fprintf(stderr, "Entire routing table:\n");
+      for (const RoutingTableEntry& entry : routing_table) {
+        fprintf(stderr, "{addr = %p, len = %d, if_index = %d, nexthop = %p}\n", entry.addr, entry.len, entry.if_index, entry.nexthop);
+      }
+      fputc('\n', stderr);
+
       last_time = time;
     }
 
@@ -83,7 +162,9 @@ int main(int argc, char *argv[]) {
       continue;
     }
     in_addr_t src_addr, dst_addr;
-    // TODO: extract src_addr and dst_addr from packet (big endian)
+    // DONE: extract src_addr and dst_addr from packet (big endian)
+    src_addr = *(in_addr_t*)(packet + 12);
+    dst_addr = *(in_addr_t*)(packet + 16);
 
     // 2. check whether dst is me
     bool dst_is_me = false;
@@ -93,36 +174,33 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
-    // TODO: handle rip multicast address(224.0.0.9)
+    // DONE: handle rip multicast address(224.0.0.9)
+    if (!dst_is_me && dst_addr == RIP_IP_BE) {
+      dst_is_me = true;
+    }
 
     if (dst_is_me) {
       // 3a.1
       RipPacket rip;
       // check and validate
       if (disassemble(packet, res, &rip)) {
-        if (rip.command == 1) {
+        if (rip.command == 1) { //request
           // 3a.3 request, ref. RFC2453 Section 3.9.1
           // only need to respond to whole table requests in the lab
 
-          RipPacket resp;
-          // TODO: fill resp
+          if (rip.numEntries) { //If there are no entries, no response is given.
+            RipPacket resp;
+            // DONE: fill resp
+            GetRoutingTable(resp);
 
-          // TODO: fill IP headers
-          output[0] = 0x45;
+            fill_header_of_rip(output, );
 
-          // TODO: fill UDP headers
-          // port = 520
-          output[20] = 0x02;
-          output[21] = 0x08;
+            // assembleRIP
+            uint32_t rip_len = assemble(&resp, &output[20 + 8]);
 
-          // assembleRIP
-          uint32_t rip_len = assemble(&resp, &output[20 + 8]);
-
-          // TODO: checksum calculation for ip and udp
-          // if you don't want to calculate udp checksum, set it to zero
-
-          // send it back
-          HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+            // send it back
+            HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+          }
         } else {
           // 3a.2 response, ref. RFC2453 Section 3.9.2
           // TODO: update routing table

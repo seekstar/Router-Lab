@@ -102,7 +102,7 @@ int HAL_ReceiveIPPacket(int if_index_mask, uint8_t *buffer, size_t length,
  * @return int 0 表示成功，非 0 为失败
  */
 int HAL_SendIPPacket(int if_index, uint8_t *buffer, size_t length,
-                     macaddr_t dst_mac);
+                     const macaddr_t dst_mac);
 
 #ifdef __cplusplus
 }

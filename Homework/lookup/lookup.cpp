@@ -23,7 +23,7 @@ using namespace std;
 */
 
 list<RoutingTableEntry> routing_table;
-const uint32_t masks[33] = {
+const uint32_t masks_be[33] = {
   0, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff,
   0x80ff, 0xc0ff, 0xe0ff, 0xf0ff, 0xf8ff, 0xfcff, 0xfeff, 0xffff,
   0x80ffff, 0xc0ffff, 0xe0ffff, 0xf0ffff, 0xf8ffff, 0xfcffff, 0xfeffff, 0xffffff,
@@ -58,7 +58,7 @@ void update(bool insert, RoutingTableEntry entry) {
 }
 
 bool match(uint32_t addr, const RoutingTableEntry& entry) {
-  return entry.addr == (addr & masks[entry.len]);
+  return entry.addr == (addr & masks_be[entry.len]);
 }
 
 /**
