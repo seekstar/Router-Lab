@@ -22,7 +22,7 @@ LDFLAGS ?= -lpcap
 .PHONY: all clean grade
 all: protocol
 
-clean:
+clean: clean_share
 	rm -f *.o protocol std *.d *.d.*
 
 grade: protocol

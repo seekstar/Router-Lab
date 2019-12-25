@@ -1,17 +1,17 @@
 #include "checksum.h"
-#include "ending.h"
+#include "myendian.h"
 #include "myip.h"
 
 uint16_t checksum(uint8_t* packet, size_t head_len) {
     uint32_t sum = 0;
     head_len >>= 1;
     for (int i = 0; i < 5; ++i) {
-        sum += be16(packet);
+        sum += rbe16(packet);
         packet += 2;
     }
     packet += 2;
     for (int i = 6; i < head_len; ++i) {
-        sum += be16(packet);
+        sum += rbe16(packet);
         packet += 2;
     }
     while (sum >> 16) {
@@ -36,5 +36,5 @@ bool validateIPChecksum(uint8_t *packet, size_t packet_len) {
       return false;
   }
 
-  return checksum(packet, head_len) == be16(packet + 10);
+  return checksum(packet, head_len) == rbe16(packet + 10);
 }

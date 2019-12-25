@@ -24,7 +24,7 @@ LDFLAGS ?= -lpcap
 .PHONY: all clean grade
 all: forwarding
 
-clean:
+clean: clean_share
 	rm -f *.o *.d *.d.* forwarding std
 
 grade: forwarding

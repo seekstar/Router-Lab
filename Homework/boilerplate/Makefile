@@ -4,6 +4,19 @@ BACKEND ?= LINUX
 CXXFLAGS ?= --std=c++11 -I $(LAB_ROOT)/HAL/include -DROUTER_BACKEND_$(BACKEND)
 LDFLAGS ?= -lpcap
 
+%.d: %.cpp
+	@set -e; \
+	$(RM) $@; \
+	$(CC) -MM $(CXXFLAGS) -I$(INCLUDE) $< > $@.$$$$; \
+	sed 's,^.*:,$@ &,g' < $@.$$$$ > $@; \
+	$(RM) $@.$$$$
+
+-include $(patsubst %.cpp,%.d,$(wildcard *.cpp))
+
+%.o: %.cpp %.d
+	$(CXX) $(CXXFLAGS) -c -I$(INCLUDE) $< -o $@
+
+
 .PHONY: all clean
 all: boilerplate
 

@@ -4,8 +4,6 @@
 
 #include <list>
 
-//#include "ending.h"
-
 using namespace std;
 
 /*

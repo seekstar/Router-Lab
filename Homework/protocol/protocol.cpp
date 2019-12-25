@@ -1,9 +1,34 @@
 #include "rip.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <endian.h>
 
-#include "ending.h"
+#include "myendian.h"
 #include "myip.h"
+
+#define DEBUG 0
+
+#if DEBUG
+#include <stdio.h>
+#endif
+
+int lowbit(int x) {
+	return x & -x;
+}
+bool test_single_one(int x) {
+	return lowbit(x) == x;
+}
+//if x==0 return true
+bool test_01(int x) {
+	return test_single_one(x + 1);
+}
+bool test_10(int x) {
+  return test_01(~x);
+}
+
+bool valid_metric(uint32_t metric) {
+  return 1 <= metric && metric <= 16;
+}
 
 /*
   在头文件 rip.h 中定义了如下的结构体：
@@ -48,8 +73,11 @@
  */
 bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   // TODO:
-  if (be16(packet + 2) > len) {
+  if (rbe16(packet + 2) > len) {
     //Total length > len
+#if DEBUG
+    printf("Total length > len\n");
+#endif
     return false;
   }
   uint32_t ip_head_length = ip_head_len(packet);
@@ -58,13 +86,49 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   if ((output->command != 1 && output->command != 2) || 
       packet[ip_head_length + 9] != 2 || //Version != RIPv2
       (packet[ip_head_length + 10] || packet[ip_head_length + 11])  //Zero != 0
-      )  //
+  ) {
+#if DEBUG
+    printf("rip head incorrect\n");
+#endif
     return false;
-  packet += ip_head_length + 8 + 4;
-  for (uint32_t i = 0; i < output->numEntries; ++i) {
-    if (be16(packet) )
   }
-  return false;
+  packet += ip_head_length + 8 + 4;
+  uint16_t family = output->command == 2 ? 2 : 0; //0 for request, 2 for response.
+  for (uint32_t i = 0; i < output->numEntries; ++i, packet += 20) {
+    if (rbe16(packet) != family ||
+        rbe16(packet + 2) != 0 ||  //tag != 0
+        !test_10(rbe32(packet + 8)) ||  //Mask is invalid
+        !valid_metric(rbe32(packet + 16))  //metric is not in [1, 16]
+    ) {
+#if DEBUG
+      printf("%d-th incorrect\n", i);
+      printf("family = %d, tag = %d, mask = %p, metric = %d\n", rbe16(packet), rbe16(packet + 2), rbe32(packet + 8), rbe16(packet + 16));
+      printf("std family = %d\n", family);
+#endif
+      return false;
+    }
+    output->entries[i] = {
+      .addr = *(uint32_t*)(packet + 4),
+      .mask = *(uint32_t*)(packet + 8),
+      .nexthop = *(uint32_t*)(packet + 12),
+      .metric = *(uint32_t*)(packet + 16)
+    };
+  }
+  return true;
+}
+
+void assemble(uint8_t* buffer, const RipEntry& rip, uint16_t family) {
+  wbe16(buffer, family);
+  buffer += 2;
+  *(uint16_t*)buffer = 0;
+  buffer += 2;
+  *(uint32_t*)buffer = rip.addr;
+  buffer += 4;
+  *(uint32_t*)buffer = rip.mask;
+  buffer += 4;
+  *(uint32_t*)buffer = rip.nexthop;
+  buffer += 4;
+  *(uint32_t*)buffer = rip.metric;
 }
 
 /**
@@ -79,5 +143,14 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
  */
 uint32_t assemble(const RipPacket *rip, uint8_t *buffer) {
   // TODO:
-  return 0;
+  *(buffer++) = rip->command;
+  uint16_t family = rip->command == 2 ? 2 : 0; //0 for request, 2 for response.
+  *(buffer++) = 2;
+  *(uint16_t*)buffer = 0;
+  buffer += 2;
+  for (uint32_t i = 0; i < rip->numEntries; ++i, buffer += 20) {
+    assemble(buffer, rip->entries[i], family);
+  }
+
+  return 4 + 20 * rip->numEntries;
 }
