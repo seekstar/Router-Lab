@@ -18,7 +18,7 @@ uint16_t checksum(uint8_t* packet, size_t head_len, size_t checksum_pos) {
 }
 
 uint16_t checksum(uint8_t* packet, size_t head_len) {
-    checksum(packet, head_len, 10);
+    return checksum(packet, head_len, 10);
 }
 uint16_t checksum(uint8_t* packet) {
     return checksum(packet, ip_head_len(packet));

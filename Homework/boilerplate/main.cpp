@@ -6,107 +6,23 @@
 #include "lookup.h"
 #include "board.h"
 #include "myip.h"
+#include "icmp.h"
+#include "mac.h"
 
 using namespace std;
 
+#define DEBUG 1
+
 // when testing, you can change 30s to 5s
 //timer for sending routing table
-#define TIMER_SRT 30
+#define TIMER_SRT 5
 
-//#define RIP_MAC_BE 0x0900005e0001
-const uint8_t RIP_MAC_BE[6] = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09};
-const in_addr_t RIP_IP_BE = 0xe0000009;
-
-extern bool validateIPChecksum(uint8_t *packet, size_t len);
-extern void update(bool insert, RoutingTableEntry entry);
-extern bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index);
 extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
 
-extern const uint32_t masks_be[33];
-
 uint8_t packet[2048];
 uint8_t output[2048];
-
-uint16_t ip_id_counter = 0;
-
-
-
-uint32_t GetRoutingTable(RipPacket& rip) {
-  rip.numEntries = routing_table.size();
-  rip.command = 2;  //response
-  uint32_t i = 0;
-  for (const RoutingTableEntry& entry : routing_table) {
-    rip.entries[i++] = {
-      .addr = entry.addr,
-      .mask = masks_be[entry.len],
-      .nexthop = entry.nexthop,
-      .metric = entry.metric
-    };
-  }
-}
-//Fill ip and udp header of rip
-//n rip entries
-uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n) {
-  // Fill IP headers
-  *(ip++) = 0x45;
-  *(ip++) = 0xc0;
-  *(uint16_t*)ip = htobe16(20 + 8 + 4 + n * 20);  //Total Length
-  ip += 2;
-  *(uint16_t*)ip = htobe16(++ip_id_counter); //identification
-  ip += 2;
-  *(uint16_t*)ip = 0x4000;  //Flags: Don't fragment
-  ip += 2;
-  *(ip++) = 1;  //TTL
-  *(ip++) = 0x11; //UDP
-  ip += 2;  //skip checksum
-  *(uint32_t*)ip = addrs[if_index]; //source
-  ip += 4;
-  *(uint32_t*)ip = RIP_IP_BE; //Destination
-  *(uint16_t*)(ip - 6) = checksum(ip - 16);
-  ip += 4;
-
-  // Fill UDP headers
-  // port = 520
-  *(uint16_t*)ip = htobe16(520);  //source port
-  *(uint16_t*)(ip + 2) = htobe16(520);  //destination port
-  *(uint16_t*)(ip + 4) = htobe16(8 + 4 + n * 20);  //Length
-  *(uint16_t*)(ip + 6) = checksum_udp(ip);
-
-  return 20 + 8;
-}
-
-//Fill ip and udp header of icmp
-uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, const uint8_t* ori) {
-  //Fill ip headers
-  ip[0] = 0x45;
-  ip[1] = 0;  //from wireshark. why?
-  uint16_t total_length = 20 + 8 + ip_head_len(ori);
-  *(uint16_t*)(ip + 2) = htobe16(total_length); //total length
-  *(uint16_t*)(ip + 4) = htobe16(++ip_id_counter);  //id
-  *(uint16_t*)(ip + 6) = 0; //can fragment
-  ip[8] = 0xff; //TTL
-  ip[9] = 1;  //ICMP;
-  //skip checksum
-  *(uint32_t*)(ip + 12) = addrs[if_index];  //source
-  *(uint32_t*)(ip + 16) = dst_ip;
-  *(uint16_t*)(ip + 10) = checksum(ip);
-
-  //ICMP
-  ip = ip + 20;
-  ip[0] = 3; //destination unreachable
-  ip[1] = 2; //protocol unreachable
-  //skip checksum
-  *(uint32_t*)(ip + 4) = 0; //unused
-  *(uint16_t*)(ip + 2) = checksum(ip, 8, 2);
-
-  // error ip header
-  ip += 8;
-  memcpy(ip, ori, ip_head_len(ori));
-
-  return total_length;
-}
 
 int main(int argc, char *argv[]) {
   // 0a.
@@ -117,8 +33,8 @@ int main(int argc, char *argv[]) {
 
   // 0b. Add direct routes
   // For example:
-  // 10.0.0.0/24 if 0
-  // 10.0.1.0/24 if 1
+  // 192.168.1.1/24 if 0
+  // 192.168.5.2/24 if 1
   // 10.0.2.0/24 if 2
   // 10.0.3.0/24 if 3
   for (uint32_t i = 0; i < N_IFACE_ON_BOARD; i++) {
@@ -152,7 +68,11 @@ int main(int argc, char *argv[]) {
       // DONE: print complete routing table to stdout/stderr
       fprintf(stderr, "Entire routing table:\n");
       for (const RoutingTableEntry& entry : routing_table) {
-        fprintf(stderr, "{addr = %p, len = %d, if_index = %d, nexthop = %p}\n", entry.addr, entry.len, entry.if_index, entry.nexthop);
+        fprintf(stderr, "{addr = ");
+        print_ip(stderr, entry.addr);
+        fprintf(stderr, ", len = %d, if_index = %d, nexthop = ", entry.len, entry.if_index);
+        print_ip(stderr, entry.nexthop);
+        fprintf(stderr, "}\n");
       }
       fputc('\n', stderr);
 
@@ -186,6 +106,14 @@ int main(int argc, char *argv[]) {
     // DONE: extract src_addr and dst_addr from packet (big endian)
     src_addr = *(in_addr_t*)(packet + 12);
     dst_addr = *(in_addr_t*)(packet + 16);
+    
+#if DEBUG
+    printf("if_index = %d, src_addr = ", if_index);
+    print_ip(stdout, src_addr);
+    printf(", dst_addr = ");
+    print_ip(stdout, dst_addr);
+    putchar('\n');
+#endif
 
     // 2. check whether dst is me
     bool dst_is_me = false;
@@ -223,7 +151,7 @@ int main(int argc, char *argv[]) {
           }
         } else {
           // 3a.2 response, ref. RFC2453 Section 3.9.2
-          // TODO: update routing table
+          // DONE: update routing table
           // new metric = ?
           // update metric, if_index, nexthop
           // HINT: handle nexthop = 0 case
@@ -248,22 +176,36 @@ int main(int argc, char *argv[]) {
         }
         if (HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac) == 0) {
           // found
+#if DEBUG
+          printf("found arp, dest_if = %d, dest_mac = ", dest_if);
+          print_mac(stdout, dest_mac);
+          putchar('\n');
+#endif
           memcpy(output, packet, res);
           // update ttl and checksum
           if (forward(output, res)) {
+#if DEBUG
+            printf("sent\n");
+#endif
             HAL_SendIPPacket(dest_if, output, res, dest_mac);
           }
         } else {
           // not found
           // you can drop it
-          printf("ARP not found for nexthop %x\n", nexthop);
+          printf("ARP not found for nexthop ");
+          print_ip(stdout, nexthop);
+          printf(", if_index = %d\n", dest_if);
         }
       } else {
         // not found
         // DONE(optional): send ICMP Host Unreachable
         uint32_t len = icmp_unreachable(output, if_index, dst_addr, packet);
         HAL_SendIPPacket(if_index, output, len, src_mac);
-        printf("IP not found for src %x dst %x\n", src_addr, dst_addr);
+        printf("IP not found for src ");
+        print_ip(stdout, src_addr);
+        printf(" dst ");
+        print_ip(stdout, dst_addr);
+        putchar('\n');
       }
     }
   }

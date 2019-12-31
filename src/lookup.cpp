@@ -4,6 +4,12 @@
 
 #include "mask.h"
 
+#define DEBUG 1
+
+#if DEBUG
+#include "myip.h"
+#endif
+
 using namespace std;
 
 list<RoutingTableEntry> routing_table;
@@ -52,6 +58,13 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   uint32_t mx_len = 0;
   for (auto it = routing_table.begin(); it != routing_table.end(); ++it) {
     if (it->len > mx_len && match(addr, *it)) {
+#if DEBUG
+      printf("query: matched address for ");
+      print_ip(stdout, addr);
+      printf(" is ");
+      print_ip(stdout, it->addr);
+      putchar('\n');
+#endif
       found = true;
       *if_index = it->if_index;
       *nexthop = it->nexthop;
