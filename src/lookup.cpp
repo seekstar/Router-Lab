@@ -1,8 +1,6 @@
-#include "router.h"
+#include "lookup.h"
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <list>
 
 #include "mask.h"
 

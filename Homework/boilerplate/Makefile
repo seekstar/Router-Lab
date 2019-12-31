@@ -28,5 +28,5 @@ clean: clean_share
 hal.o: $(LAB_ROOT)/HAL/src/linux/router_hal.cpp $(LAB_ROOT)/HAL/src/linux/platform/standard.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-boilerplate: main.o hal.o protocol.o lookup.o forwarding.o $(OBJS)
+boilerplate: main.o hal.o protocol.o forwarding.o $(OBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS) 

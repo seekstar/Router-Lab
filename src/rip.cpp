@@ -38,7 +38,7 @@ void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t if_index) {
             }
         } else {
             if (re.metric != INF_METRIC) {
-                routing_table.emplace_back(re.addr, mask_be_len[re.mask], if_index, addrs[if_index], new_metric);
+                routing_table.push_back({re.addr, mask_be_len[re.mask], if_index, addrs[if_index], new_metric});
             }
         }
     }

@@ -16,7 +16,7 @@ clean_share:
 $(DEP)/%.d: $(SRC)%.cpp
 	@set -e; \
 	$(RM) $@; \
-	$(CC) -MM -I$(INCLUDE) $< > $@.$$$$; \
+	$(CC) -MM $(CXXFLAGS) -I$(INCLUDE) $< > $@.$$$$; \
 	sed 's,^.*:,$@ $(OBJ)/&,g' < $@.$$$$ > $@; \
 	$(RM) $@.$$$$
 

@@ -1,4 +1,4 @@
-#include "router_hal.h"
+#include "board.h"
 
 // 0: 10.0.0.1
 // 1: 10.0.1.1
