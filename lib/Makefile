@@ -1,6 +1,3 @@
-CC ?= g++
-RM	?= rm
-
 INCLUDE ?= $(LAB_ROOT)/include
 
 SRC ?= $(LAB_ROOT)/src

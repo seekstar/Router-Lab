@@ -1,4 +1,10 @@
+#ifndef RIP_H_
+#define RIP_H_
+
 #include <stdint.h>
+
+#include "lookup.h"
+
 #define RIP_MAX_ENTRY 25
 typedef struct {
   // all fields are big endian
@@ -18,3 +24,7 @@ typedef struct {
   // we don't store 'zero', as it is always 0
   RipEntry entries[RIP_MAX_ENTRY];
 } RipPacket;
+
+void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t if_index);
+
+#endif

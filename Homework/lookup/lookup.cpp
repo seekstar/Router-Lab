@@ -4,31 +4,11 @@
 
 #include <list>
 
+#include "mask.h"
+
 using namespace std;
 
-/*
-  RoutingTable Entry 的定义如下：
-  typedef struct {
-    uint32_t addr; // 大端序，IPv4 地址
-    uint32_t len; // 小端序，前缀长度
-    uint32_t if_index; // 小端序，出端口编号
-    uint32_t nexthop; // 大端序，下一跳的 IPv4 地址
-  } RoutingTableEntry;
-
-  约定 addr 和 nexthop 以 **大端序** 存储。
-  这意味着 1.2.3.4 对应 0x04030201 而不是 0x01020304。
-  保证 addr 仅最低 len 位可能出现非零。
-  当 nexthop 为零时这是一条直连路由。
-  你可以在全局变量中把路由表以一定的数据结构格式保存下来。
-*/
-
 list<RoutingTableEntry> routing_table;
-const uint32_t masks_be[33] = {
-  0, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff,
-  0x80ff, 0xc0ff, 0xe0ff, 0xf0ff, 0xf8ff, 0xfcff, 0xfeff, 0xffff,
-  0x80ffff, 0xc0ffff, 0xe0ffff, 0xf0ffff, 0xf8ffff, 0xfcffff, 0xfeffff, 0xffffff,
-  0x80ffffff, 0xc0ffffff, 0xe0ffffff, 0xf0ffffff, 0xf8ffffff, 0xfcffffff, 0xfeffffff, 0xffffffff,
-};
 
 /**
  * @brief 插入/删除一条路由表表项

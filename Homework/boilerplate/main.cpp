@@ -1,13 +1,11 @@
 #include "rip.h"
-#include "router.h"
-#include "router_hal.h"
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include <list>
 #include "checksum.h"
+#include "lookup.h"
+#include "board.h"
+#include "myip.h"
 
 using namespace std;
 
@@ -26,18 +24,10 @@ extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
 
-extern list<RoutingTableEntry> routing_table;
 extern const uint32_t masks_be[33];
 
 uint8_t packet[2048];
 uint8_t output[2048];
-// 0: 10.0.0.1
-// 1: 10.0.1.1
-// 2: 10.0.2.1
-// 3: 10.0.3.1
-// 你可以按需进行修改，注意端序
-in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0100000a, 0x0101000a, 0x0102000a,
-                                     0x0103000a};
 
 uint16_t ip_id_counter = 0;
 
@@ -64,13 +54,13 @@ uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n) {
   *(ip++) = 0xc0;
   *(uint16_t*)ip = htobe16(20 + 8 + 4 + n * 20);  //Total Length
   ip += 2;
-  *(uint16_t*)ip = ++ip_id_counter; //identification
+  *(uint16_t*)ip = htobe16(++ip_id_counter); //identification
   ip += 2;
   *(uint16_t*)ip = 0x4000;  //Flags: Don't fragment
   ip += 2;
   *(ip++) = 1;  //TTL
   *(ip++) = 0x11; //UDP
-  ip += 2;  //checksum
+  ip += 2;  //skip checksum
   *(uint32_t*)ip = addrs[if_index]; //source
   ip += 4;
   *(uint32_t*)ip = RIP_IP_BE; //Destination
@@ -85,6 +75,37 @@ uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n) {
   *(uint16_t*)(ip + 6) = checksum_udp(ip);
 
   return 20 + 8;
+}
+
+//Fill ip and udp header of icmp
+uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, const uint8_t* ori) {
+  //Fill ip headers
+  ip[0] = 0x45;
+  ip[1] = 0;  //from wireshark. why?
+  uint16_t total_length = 20 + 8 + ip_head_len(ori);
+  *(uint16_t*)(ip + 2) = htobe16(total_length); //total length
+  *(uint16_t*)(ip + 4) = htobe16(++ip_id_counter);  //id
+  *(uint16_t*)(ip + 6) = 0; //can fragment
+  ip[8] = 0xff; //TTL
+  ip[9] = 1;  //ICMP;
+  //skip checksum
+  *(uint32_t*)(ip + 12) = addrs[if_index];  //source
+  *(uint32_t*)(ip + 16) = dst_ip;
+  *(uint16_t*)(ip + 10) = checksum(ip);
+
+  //ICMP
+  ip = ip + 20;
+  ip[0] = 3; //destination unreachable
+  ip[1] = 2; //protocol unreachable
+  //skip checksum
+  *(uint32_t*)(ip + 4) = 0; //unused
+  *(uint16_t*)(ip + 2) = checksum(ip, 8, 2);
+
+  // error ip header
+  ip += 8;
+  memcpy(ip, ori, ip_head_len(ori));
+
+  return total_length;
 }
 
 int main(int argc, char *argv[]) {
@@ -192,8 +213,7 @@ int main(int argc, char *argv[]) {
             RipPacket resp;
             // DONE: fill resp
             GetRoutingTable(resp);
-
-            fill_header_of_rip(output, );
+            fill_header_of_rip(output, if_index, routing_table.size());
 
             // assembleRIP
             uint32_t rip_len = assemble(&resp, &output[20 + 8]);
@@ -209,6 +229,8 @@ int main(int argc, char *argv[]) {
           // HINT: handle nexthop = 0 case
           // HINT: what is missing from RoutingTableEntry?
           // you might want to use `query` and `update` but beware of the difference between exact match and longest prefix match
+          RipUpdateRT(rip, (res - 20 - 8 - 4) / 20, if_index);
+
           // optional: triggered updates? ref. RFC2453 3.10.1
         }
       }
@@ -228,9 +250,9 @@ int main(int argc, char *argv[]) {
           // found
           memcpy(output, packet, res);
           // update ttl and checksum
-          forward(output, res);
-          // TODO(optional): check ttl=0 case
-          HAL_SendIPPacket(dest_if, output, res, dest_mac);
+          if (forward(output, res)) {
+            HAL_SendIPPacket(dest_if, output, res, dest_mac);
+          }
         } else {
           // not found
           // you can drop it
@@ -238,7 +260,9 @@ int main(int argc, char *argv[]) {
         }
       } else {
         // not found
-        // TODO(optional): send ICMP Host Unreachable
+        // DONE(optional): send ICMP Host Unreachable
+        uint32_t len = icmp_unreachable(output, if_index, dst_addr, packet);
+        HAL_SendIPPacket(if_index, output, len, src_mac);
         printf("IP not found for src %x dst %x\n", src_addr, dst_addr);
       }
     }
