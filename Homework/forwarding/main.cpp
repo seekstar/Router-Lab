@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "board.h"
+
 extern bool forward(uint8_t *packet, size_t len);
 
-in_addr_t addrs[N_IFACE_ON_BOARD] = {0};
 uint8_t packet[1024];
 
 int main(int argc, char *argv[]) {
