@@ -74,7 +74,7 @@ uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n) {
   ip += 2;
   *(uint16_t*)ip = htobe16(++ip_id_counter); //identification
   ip += 2;
-  *(uint16_t*)ip = 0x4000;  //Flags: Don't fragment
+  *(uint16_t*)ip = htobe16(0x4000);  //Flags: Don't fragment
   ip += 2;
   *(ip++) = 1;  //TTL
   *(ip++) = 0x11; //UDP

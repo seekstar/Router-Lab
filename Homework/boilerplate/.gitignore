@@ -1,6 +1,12 @@
-*.o
-boilerplate
-std
-std.cpp
-!*_output*.out
+# *.o
+# boilerplate*
+# std
+# std.cpp
+# !*_output*.out
+# !Makefile
+
+*
+!*/
+!*.cpp
+!*.h
 !Makefile
