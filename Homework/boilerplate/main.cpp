@@ -42,7 +42,8 @@ int main(int argc, char *argv[]) {
         .addr = addrs[i] & 0x00FFFFFF, // big endian
         .len = 24,        // small endian
         .if_index = i,    // small endian
-        .nexthop = 0      // big endian, means direct
+        .nexthop = 0,      // big endian, means direct
+        .metric = 0   //direct
     };
     update(true, entry);
   }
@@ -62,7 +63,7 @@ int main(int argc, char *argv[]) {
       uint32_t len = assemble(&rip, packet + 20 + 8 + 4);
       for (uint32_t i = 0; i < N_IFACE_ON_BOARD; ++i) {
         fill_header_of_rip(packet, i, rip.numEntries);
-        HAL_SendIPPacket(i, packet, len, RIP_MAC_BE);
+        HAL_SendIPPacket(i, packet, len + 28, RIP_MAC_BE);
       }
 
       // DONE: print complete routing table to stdout/stderr
