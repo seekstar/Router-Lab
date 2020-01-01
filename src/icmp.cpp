@@ -21,17 +21,19 @@ uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, cons
   *(uint32_t*)(ip + 16) = dst_ip;
   fill_ip_checksum(ip);
 
-  //ICMP
+  //ICMP header
   ip = ip + 20;
   ip[0] = 3; //destination unreachable
   ip[1] = 2; //protocol unreachable
   //skip checksum
   *(uint32_t*)(ip + 4) = 0; //unused
-  *(uint16_t*)(ip + 2) = checksum_be(ip, 8, 2);
 
-  // error ip header
-  ip += 8;
-  memcpy(ip, ori, ip_head_len(ori));
+  //ICMP data
+  // The original ip header
+  uint32_t icmp_data_len = ip_head_len(ori);
+  memcpy(ip + 8, ori, icmp_data_len);
+  //The ICMP checksum include ICMP header and ICMP data
+  *(uint16_t*)(ip + 2) = checksum_be(ip, icmp_data_len + 8, 2);
 
   return total_length;
 }
