@@ -26,6 +26,6 @@ LDFLAGS ?= -lpcap
 all: boilerplate1 boilerplate2 boilerplate3
 
 clean: clean_share clean_r1 clean_r2 clean_r3
-	rm -f *.o std *.d *.d.* boilerplate1 boilerplate2 boilerplate3
+	rm -f *.o std *.d *.d.* boilerplate boilerplate1 boilerplate2 boilerplate3
 
 .PHONY: all clean

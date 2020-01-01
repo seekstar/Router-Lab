@@ -9,7 +9,8 @@ using namespace std;
 
 #define INF_METRIC 16u
 
-const in_addr_t RIP_IP_BE = 0xe0000009;
+const in_addr_t RIP_IP_LE = 0xe0000009;
+const in_addr_t RIP_IP_BE = 0x090000e0;
 
 //#define RIP_MAC_BE 0x0900005e0001
 const uint8_t RIP_MAC_BE[6] = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09};

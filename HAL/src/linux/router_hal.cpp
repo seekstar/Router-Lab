@@ -17,7 +17,7 @@
 #include <utility>
 
 #ifndef HAL_PLATFORM_TESTING
-#include "platform/standard.h"
+#include "standard.h"
 #else
 #include "platform/testing.h"
 #endif
