@@ -4,6 +4,7 @@
 #include "board.h"
 #include "mask.h"
 #include "myip.h"
+#include "myendian.h"
 
 using namespace std;
 
@@ -68,29 +69,25 @@ void GetRoutingTable(RipPacket& rip) {
 //n rip entries
 uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n) {
   // Fill IP headers
-  *(ip++) = 0x45;
-  *(ip++) = 0xc0;
-  *(uint16_t*)ip = htobe16(20 + 8 + 4 + n * 20);  //Total Length
-  ip += 2;
-  *(uint16_t*)ip = htobe16(++ip_id_counter); //identification
-  ip += 2;
-  *(uint16_t*)ip = htobe16(0x4000);  //Flags: Don't fragment
-  ip += 2;
-  *(ip++) = 1;  //TTL
-  *(ip++) = 0x11; //UDP
-  ip += 2;  //skip checksum
-  *(uint32_t*)ip = addrs[if_index]; //source
-  ip += 4;
-  *(uint32_t*)ip = RIP_IP_BE; //Destination
-  *(uint16_t*)(ip - 6) = checksum(ip - 16);
-  ip += 4;
+  ip[0] = 0x45;
+  ip[1] = 0xc0;
+  wbe16(ip + 2, 20 + 8 + 4 + n * 20);     //Total Length
+  wbe16(ip + 4, ++ip_id_counter);   //identification
+  wbe16(ip + 6, 0x4000);   //Flags: Don't fragment
+  ip[8] = 1;    //TTL
+  ip[9] = 0x11; //UDP
+  //skip checksum
+  *(uint32_t*)(ip + 12) = addrs[if_index]; //source
+  *(uint32_t*)(ip + 16) = RIP_IP_BE; //Destination
+  fill_ip_checksum(ip);
 
   // Fill UDP headers
+  ip += 20;
   // port = 520
   *(uint16_t*)ip = htobe16(520);  //source port
   *(uint16_t*)(ip + 2) = htobe16(520);  //destination port
   *(uint16_t*)(ip + 4) = htobe16(8 + 4 + n * 20);  //Length
-  *(uint16_t*)(ip + 6) = checksum_udp(ip);
+  fill_udp_checksum(ip);
 
   return 20 + 8;
 }

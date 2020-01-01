@@ -19,6 +19,8 @@ bool forward(uint8_t *packet, size_t len) {
   if (packet[8] <= 1)
     return false;
   --packet[8];
-  wbe16(packet + 10, checksum(packet));
+
+  fill_ip_checksum(packet);
+
   return true;
 }

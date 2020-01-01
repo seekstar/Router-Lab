@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
       RipPacket rip;
       GetRoutingTable(rip);
       //can optimize
-      uint32_t len = assemble(&rip, packet + 20 + 8 + 4);
+      uint32_t len = assemble(&rip, packet + 20 + 8);
       for (uint32_t i = 0; i < N_IFACE_ON_BOARD; ++i) {
         fill_header_of_rip(packet, i, rip.numEntries);
         HAL_SendIPPacket(i, packet, len + 28, RIP_MAC_BE);

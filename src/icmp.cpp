@@ -19,7 +19,7 @@ uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, cons
   //skip checksum
   *(uint32_t*)(ip + 12) = addrs[if_index];  //source
   *(uint32_t*)(ip + 16) = dst_ip;
-  *(uint16_t*)(ip + 10) = checksum(ip);
+  fill_ip_checksum(ip);
 
   //ICMP
   ip = ip + 20;
@@ -27,7 +27,7 @@ uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, cons
   ip[1] = 2; //protocol unreachable
   //skip checksum
   *(uint32_t*)(ip + 4) = 0; //unused
-  *(uint16_t*)(ip + 2) = checksum(ip, 8, 2);
+  *(uint16_t*)(ip + 2) = checksum_be(ip, 8, 2);
 
   // error ip header
   ip += 8;
