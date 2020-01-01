@@ -19,14 +19,13 @@ LDFLAGS ?= -lpcap
 	$(CXX) $(CXXFLAGS) -c -I$(INCLUDE) $< -o $@
 
 
+-include $(LAB_ROOT)/config/netns/my123/r1/Makefile
+-include $(LAB_ROOT)/config/netns/my123/r2/Makefile
+-include $(LAB_ROOT)/config/netns/my123/r3/Makefile
+
+all: boilerplate1 boilerplate2 boilerplate3
+
+clean: clean_share clean_r1 clean_r2 clean_r3
+	rm -f *.o std *.d *.d.* boilerplate1 boilerplate2 boilerplate3
+
 .PHONY: all clean
-all: boilerplate
-
-clean: clean_share
-	rm -f *.o boilerplate std *.d *.d.*
-
-hal.o: $(LAB_ROOT)/HAL/src/linux/router_hal.cpp $(LAB_ROOT)/HAL/src/linux/platform/standard.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-boilerplate: main.o hal.o protocol.o forwarding.o $(OBJS)
-	$(CXX) $^ -o $@ $(LDFLAGS) 
