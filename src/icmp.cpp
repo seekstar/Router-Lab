@@ -33,7 +33,7 @@ uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, cons
   uint32_t icmp_data_len = ip_head_len(ori);
   memcpy(ip + 8, ori, icmp_data_len);
   //The ICMP checksum include ICMP header and ICMP data
-  *(uint16_t*)(ip + 2) = checksum_be(ip, icmp_data_len + 8, 2);
+  *(uint16_t*)(ip + 2) = checksum(ip, icmp_data_len + 8, 2);
 
   return total_length;
 }

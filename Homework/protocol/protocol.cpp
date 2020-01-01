@@ -72,7 +72,7 @@ bool valid_metric(uint32_t metric) {
  * Mask 的二进制是不是连续的 1 与连续的 0 组成等等。
  */
 bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
-  // TODO:
+  // DONE:
   if (rbe16(packet + 2) > len) {
     //Total length > len
 #if DEBUG
@@ -81,6 +81,9 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
     return false;
   }
   uint32_t ip_head_length = ip_head_len(packet);
+  if (!validateUDPChecksum(packet + ip_head_length)) {
+    return false;
+  }
   output->numEntries = (len - (ip_head_length + 8 + 2)) / 20;
   output->command = packet[ip_head_length + 8];
   if ((output->command != 1 && output->command != 2) || 
