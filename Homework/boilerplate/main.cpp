@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
         .len = 24,        // small endian
         .if_index = i,    // small endian
         .nexthop = 0,      // big endian, means direct
-        .metric = 0   //direct
+        .metric = 1   //direct
     };
     update(true, entry);
   }
@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
         print_ip(stderr, entry.addr);
         fprintf(stderr, ", len = %d, if_index = %d, nexthop = ", entry.len, entry.if_index);
         print_ip(stderr, entry.nexthop);
+        fprintf(stderr, ", metric = %d", entry.metric);
         fprintf(stderr, "}\n");
       }
       fputc('\n', stderr);
@@ -130,38 +131,47 @@ int main(int argc, char *argv[]) {
     }
 
     if (dst_is_me) {
-      // 3a.1
-      RipPacket rip;
-      // check and validate
-      if (disassemble(packet, res, &rip)) {
-        if (rip.command == 1) { //request
-          // 3a.3 request, ref. RFC2453 Section 3.9.1
-          // only need to respond to whole table requests in the lab
+#if DEBUG
+      printf("An ip packet for me\n");
+#endif
+      if (dst_addr == RIP_IP_BE) {
+        // 3a.1
+        RipPacket rip;
+        // check and validate
+        if (disassemble(packet, res, &rip)) {
+  #if DEBUG
+          printf("Valid rip packet received\n");
+  #endif
+          if (rip.command == 1) { //request
+            // 3a.3 request, ref. RFC2453 Section 3.9.1
+            // only need to respond to whole table requests in the lab
 
-          if (rip.numEntries) { //If there are no entries, no response is given.
-            RipPacket resp;
-            // DONE: fill resp
-            GetRoutingTable(resp);
-            fill_header_of_rip(output, if_index, routing_table.size());
+            if (rip.numEntries) { //If there are no entries, no response is given.
+              RipPacket resp;
+              // DONE: fill resp
+              GetRoutingTable(resp);
+              fill_header_of_rip(output, if_index, routing_table.size());
 
-            // assembleRIP
-            uint32_t rip_len = assemble(&resp, &output[20 + 8]);
+              // assembleRIP
+              uint32_t rip_len = assemble(&resp, &output[20 + 8]);
 
-            // send it back
-            HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+              // send it back
+              HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+            }
+          } else {
+            // 3a.2 response, ref. RFC2453 Section 3.9.2
+            // DONE: update routing table
+            // update metric, if_index, nexthop
+            // HINT: handle nexthop = 0 case  ?????
+            // HINT: what is missing from RoutingTableEntry?
+            // you might want to use `query` and `update` but beware of the difference between exact match and longest prefix match
+            RipUpdateRT(rip, (res - 20 - 8 - 4) / 20, src_addr, if_index);
+
+            // optional: triggered updates? ref. RFC2453 3.10.1
           }
-        } else {
-          // 3a.2 response, ref. RFC2453 Section 3.9.2
-          // DONE: update routing table
-          // new metric = ?
-          // update metric, if_index, nexthop
-          // HINT: handle nexthop = 0 case
-          // HINT: what is missing from RoutingTableEntry?
-          // you might want to use `query` and `update` but beware of the difference between exact match and longest prefix match
-          RipUpdateRT(rip, (res - 20 - 8 - 4) / 20, if_index);
-
-          // optional: triggered updates? ref. RFC2453 3.10.1
         }
+      } else {
+        printf("The ip packet for me is not a rip packet, ignore it\n");
       }
     } else {
       // 3b.1 dst is not me
@@ -200,7 +210,7 @@ int main(int argc, char *argv[]) {
       } else {
         // not found
         // DONE(optional): send ICMP Host Unreachable
-        uint32_t len = icmp_unreachable(output, if_index, dst_addr, packet);
+        uint32_t len = icmp_unreachable(output, if_index, src_addr, packet);
         HAL_SendIPPacket(if_index, output, len, src_mac);
         printf("IP not found for src ");
         print_ip(stdout, src_addr);

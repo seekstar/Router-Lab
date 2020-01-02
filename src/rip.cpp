@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <endian.h>
 
 #include "rip.h"
 #include "board.h"
@@ -7,6 +8,8 @@
 #include "myendian.h"
 
 using namespace std;
+
+#define DEBUG 1
 
 #define INF_METRIC 16u
 
@@ -20,7 +23,8 @@ bool exact_match(const RipEntry& re, const RoutingTableEntry& te) {
     return re.addr == te.addr && re.mask == masks_be[te.len];
 }
 // n rip entries
-void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t if_index) {
+//src ip is the source ip of the rip packet
+void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t src_ip, uint32_t if_index) {
     for (size_t i = 0; i < n; ++i) {
         auto& re = rip.entries[i];
         auto it = routing_table.begin();
@@ -29,25 +33,45 @@ void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t if_index) {
                 break;
             }
         }
-        uint32_t new_metric = min(re.metric + 1, INF_METRIC);
+        uint32_t new_metric = min(be32toh(re.metric) + 1, INF_METRIC);
         if (it != routing_table.end()) {
             auto& te = *it;
-            /*optional: if (addrs[if_index] == te.nexthop) {
+#if DEBUG
+            printf("RipUpdateRT: match (addr = ");
+            print_ip(stdout, te.addr);
+            printf(", len = %d) for (addr = ", te.len);
+            print_ip(stdout, re.addr);
+            printf(", mask = ");
+            print_ip(stdout, re.mask);
+            printf(")\n");
+#endif
+            /*optional: if (src_ip == te.nexthop) {
                 reinit the timeout
             }*/
-            if ((addrs[if_index] == te.nexthop && new_metric != te.metric) || (new_metric < te.metric)) {
+            if ((src_ip == te.nexthop && new_metric != te.metric) || (new_metric < te.metric)) {
                 if (INF_METRIC == new_metric) {
                     //optional: deletion process
                     routing_table.erase(it);
                 } else {
-                    te.nexthop = addrs[if_index];
+                    te.nexthop = src_ip;
                     te.metric = new_metric;
                 }
             }
         } else {
-            if (re.metric != INF_METRIC) {
-                routing_table.push_back({re.addr, mask_be_len[re.mask], if_index, addrs[if_index], new_metric});
+#if DEBUG
+            printf("A new routing table entry?\n");
+#endif
+            if (new_metric != INF_METRIC) {
+#if DEBUG
+                printf("New routing table entry is added\n");
+#endif
+                routing_table.push_back({re.addr, mask_be_len[re.mask], if_index, src_ip, new_metric});
             }
+#if DEBUG
+            else {
+                printf("The metric is infinity %d\n", new_metric);
+            }
+#endif
         }
     }
 }
@@ -61,7 +85,7 @@ void GetRoutingTable(RipPacket& rip) {
       .addr = entry.addr,
       .mask = masks_be[entry.len],
       .nexthop = entry.nexthop,
-      .metric = entry.metric
+      .metric = htobe32(entry.metric)        //big endian
     };
   }
 }

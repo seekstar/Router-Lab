@@ -6,7 +6,7 @@
 #include "myendian.h"
 #include "myip.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
 #include <stdio.h>
@@ -82,6 +82,9 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   }
   uint32_t ip_head_length = ip_head_len(packet);
   if (!validateUDPChecksum(packet + ip_head_length)) {
+#if DEBUG
+    printf("UDE checksum wrong\n");
+#endif
     return false;
   }
   output->numEntries = (len - (ip_head_length + 8 + 2)) / 20;
@@ -91,7 +94,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
       (packet[ip_head_length + 10] || packet[ip_head_length + 11])  //Zero != 0
   ) {
 #if DEBUG
-    printf("rip head incorrect\n");
+    printf("rip head incorrect, command = %d, version = %d, zero1 = %d, zero2 = %d\n", output->command, packet[ip_head_length + 9], packet[ip_head_length + 10], packet[ip_head_length + 11]);
 #endif
     return false;
   }
@@ -111,6 +114,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
       return false;
     }
     output->entries[i] = {
+      //all big endial
       .addr = *(uint32_t*)(packet + 4),
       .mask = *(uint32_t*)(packet + 8),
       .nexthop = *(uint32_t*)(packet + 12),

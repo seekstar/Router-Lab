@@ -6,7 +6,8 @@
 #include "checksum.h"
 
 //Fill ip and udp header of icmp
-uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, const uint8_t* ori) {
+//src_ip is the source ip address of the unreachable ip packet
+uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t src_ip, const uint8_t* ori) {
   //Fill ip headers
   ip[0] = 0x45;
   ip[1] = 0;  //from wireshark. why?
@@ -18,7 +19,7 @@ uint32_t icmp_unreachable(uint8_t* ip, uint32_t if_index, in_addr_t dst_ip, cons
   ip[9] = 1;  //ICMP;
   //skip checksum
   *(uint32_t*)(ip + 12) = addrs[if_index];  //source
-  *(uint32_t*)(ip + 16) = dst_ip;
+  *(uint32_t*)(ip + 16) = src_ip;
   fill_ip_checksum(ip);
 
   //ICMP header
