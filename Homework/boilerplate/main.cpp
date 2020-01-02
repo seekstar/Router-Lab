@@ -68,15 +68,7 @@ int main(int argc, char *argv[]) {
 
       // DONE: print complete routing table to stdout/stderr
       fprintf(stderr, "Entire routing table:\n");
-      for (const RoutingTableEntry& entry : routing_table) {
-        fprintf(stderr, "{addr = ");
-        print_ip(stderr, entry.addr);
-        fprintf(stderr, ", len = %d, if_index = %d, nexthop = ", entry.len, entry.if_index);
-        print_ip(stderr, entry.nexthop);
-        fprintf(stderr, ", metric = %d", entry.metric);
-        fprintf(stderr, "}\n");
-      }
-      fputc('\n', stderr);
+      print_routing_table(stderr);
 
       last_time = time;
     }
@@ -166,6 +158,9 @@ int main(int argc, char *argv[]) {
             // HINT: what is missing from RoutingTableEntry?
             // you might want to use `query` and `update` but beware of the difference between exact match and longest prefix match
             RipUpdateRT(rip, (res - 20 - 8 - 4) / 20, src_addr, if_index);
+            
+            printf("routing table updated:\n");
+            print_routing_table(stdout);
 
             // optional: triggered updates? ref. RFC2453 3.10.1
           }

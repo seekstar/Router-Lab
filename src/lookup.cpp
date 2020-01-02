@@ -73,3 +73,15 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   }
   return found;
 }
+
+void print_routing_table(FILE* out) {
+  for (const RoutingTableEntry& entry : routing_table) {
+    fprintf(out, "{addr = ");
+    print_ip(out, entry.addr);
+    fprintf(out, ", len = %d, if_index = %d, nexthop = ", entry.len, entry.if_index);
+    print_ip(out, entry.nexthop);
+    fprintf(out, ", metric = %d", entry.metric);
+    fprintf(out, "}\n");
+  }
+  fputc('\n', out);
+}
