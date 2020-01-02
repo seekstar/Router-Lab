@@ -20,6 +20,7 @@ LDFLAGS ?= -lpcap
 
 
 target_platform ?= raspberry
+# target_platform ?= netns
 
 -include $(LAB_ROOT)/config/$(target_platform)/my123/r1/Makefile
 -include $(LAB_ROOT)/config/$(target_platform)/my123/r2/Makefile

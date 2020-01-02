@@ -1,4 +1,4 @@
-r1root ?= $(LAB_ROOT)/config/netns/my123/r1
+r1root ?= $(LAB_ROOT)/config/raspberry/my123/r1
 
 $(r1root)/board.o: $(r1root)/board.cpp $(r1root)/standard.h
 	$(CXX) $(CXXFLAGS) -I $(r1root) -c $< -o $@
