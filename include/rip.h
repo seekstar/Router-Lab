@@ -32,7 +32,7 @@ typedef struct {
 } RipPacket;
 
 void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t src_ip, uint32_t if_index);
-void GetRoutingTable(RipPacket& rip);
+void GetRoutingTable(RipPacket& rip, uint32_t if_index);
 uint32_t fill_header_of_rip(uint8_t* ip, uint32_t if_index, uint32_t n);
 
 #endif

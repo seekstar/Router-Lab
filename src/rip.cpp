@@ -76,7 +76,8 @@ void RipUpdateRT(const RipPacket& rip, size_t n, uint32_t src_ip, uint32_t if_in
     }
 }
 
-void GetRoutingTable(RipPacket& rip) {
+//reverse poisoning
+void GetRoutingTable(RipPacket& rip, uint32_t if_index) {
   rip.numEntries = routing_table.size();
   rip.command = 2;  //response
   uint32_t i = 0;
@@ -85,7 +86,7 @@ void GetRoutingTable(RipPacket& rip) {
       .addr = entry.addr,
       .mask = masks_be[entry.len],
       .nexthop = entry.nexthop,
-      .metric = htobe32(entry.metric)        //big endian
+      .metric = htobe32(entry.if_index == if_index ? INF_METRIC : entry.metric)        //big endian
     };
   }
 }

@@ -32,11 +32,6 @@ int main(int argc, char *argv[]) {
   }
 
   // 0b. Add direct routes
-  // For example:
-  // 192.168.1.1/24 if 0
-  // 192.168.5.2/24 if 1
-  // 10.0.2.0/24 if 2
-  // 10.0.3.0/24 if 3
   for (uint32_t i = 0; i < N_IFACE_ON_BOARD; i++) {
     RoutingTableEntry entry = {
         .addr = addrs[i] & 0x00FFFFFF, // big endian
@@ -58,10 +53,10 @@ int main(int argc, char *argv[]) {
       printf("%ds Timer\n", TIMER_SRT);
 
       RipPacket rip;
-      GetRoutingTable(rip);
       //can optimize
-      uint32_t len = assemble(&rip, packet + 20 + 8);
       for (uint32_t i = 0; i < N_IFACE_ON_BOARD; ++i) {
+        GetRoutingTable(rip, i);
+        uint32_t len = assemble(&rip, packet + 20 + 8);
         fill_header_of_rip(packet, i, rip.numEntries);
         HAL_SendIPPacket(i, packet, len + 28, RIP_MAC_BE);
       }
@@ -141,7 +136,7 @@ int main(int argc, char *argv[]) {
             if (rip.numEntries) { //If there are no entries, no response is given.
               RipPacket resp;
               // DONE: fill resp
-              GetRoutingTable(resp);
+              GetRoutingTable(resp, if_index);
               fill_header_of_rip(output, if_index, routing_table.size());
 
               // assembleRIP
@@ -158,7 +153,7 @@ int main(int argc, char *argv[]) {
             // HINT: what is missing from RoutingTableEntry?
             // you might want to use `query` and `update` but beware of the difference between exact match and longest prefix match
             RipUpdateRT(rip, (res - 20 - 8 - 4) / 20, src_addr, if_index);
-            
+
             printf("routing table updated:\n");
             print_routing_table(stdout);
 

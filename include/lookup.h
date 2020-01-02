@@ -2,6 +2,8 @@
 #define LOOKUP_H_
 
 #include <list>
+#include <cstdio>
+
 #include "router.h"
 
 using namespace std;
