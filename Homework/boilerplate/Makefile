@@ -19,9 +19,11 @@ LDFLAGS ?= -lpcap
 	$(CXX) $(CXXFLAGS) -c -I$(INCLUDE) $< -o $@
 
 
--include $(LAB_ROOT)/config/netns/my123/r1/Makefile
--include $(LAB_ROOT)/config/netns/my123/r2/Makefile
--include $(LAB_ROOT)/config/netns/my123/r3/Makefile
+target_platform ?= raspberry
+
+-include $(LAB_ROOT)/config/$(target_platform)/my123/r1/Makefile
+-include $(LAB_ROOT)/config/$(target_platform)/my123/r2/Makefile
+-include $(LAB_ROOT)/config/$(target_platform)/my123/r3/Makefile
 
 all: boilerplate1 boilerplate2 boilerplate3
 
