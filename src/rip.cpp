@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define INF_METRIC 16u
 

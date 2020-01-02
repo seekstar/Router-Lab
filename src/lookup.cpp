@@ -3,12 +3,9 @@
 #include <stdlib.h>
 
 #include "mask.h"
-
-#define DEBUG 1
-
-#if DEBUG
 #include "myip.h"
-#endif
+
+#define DEBUG 0
 
 using namespace std;
 

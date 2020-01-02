@@ -11,7 +11,7 @@
 
 using namespace std;
 
-#define DEBUG 1
+#define DEBUG 0
 
 // when testing, you can change 30s to 5s
 //timer for sending routing table
