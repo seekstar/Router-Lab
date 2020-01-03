@@ -6,7 +6,7 @@
 #include "myendian.h"
 #include "myip.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #include <stdio.h>
