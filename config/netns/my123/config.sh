@@ -33,6 +33,25 @@ ip netns exec pc2 ip addr add 192.168.5.1/24 dev pc2r3
 ip netns exec pc1 ip route add default via 192.168.1.1
 ip netns exec pc2 ip route add default via 192.168.5.2
 
+# deal with: pcap_inject failed with send: Message too long
+# ip netns exec pc1 ethtool -K pc1r1 tso off
+# ip netns exec r1 ethtool -K r1pc1 tso off
+# ip netns exec r1 ethtool -K r1r2 tso off
+# ip netns exec r2 ethtool -K r2r1 tso off
+# ip netns exec r2 ethtool -K r2r3 tso off
+# ip netns exec r3 ethtool -K r3r2 tso off
+# ip netns exec r3 ethtool -K r3pc2 tso off
+# ip netns exec pc2 ethtool -K pc2r3 tso off
+
+# deal with: TCP checksum incorrect
+ip netns exec pc1 ethtool -K pc1r1 tx off
+ip netns exec r1 ethtool -K r1pc1 tx off
+ip netns exec r1 ethtool -K r1r2 tx off
+ip netns exec r2 ethtool -K r2r1 tx off
+ip netns exec r2 ethtool -K r2r3 tx off
+ip netns exec r3 ethtool -K r3r2 tx off
+ip netns exec r3 ethtool -K r3pc2 tx off
+ip netns exec pc2 ethtool -K pc2r3 tx off
 
 # ip netns exec pc1 ping 192.168.1.1
 # ip netns exec pc1 ping 192.168.5.1
