@@ -28,6 +28,7 @@ void update(bool insert, RoutingTableEntry entry) {
     if (it != routing_table.end()) {
       it->if_index = entry.if_index;
       it->nexthop = entry.nexthop;
+      it->metric = entry.metric;
     } else {
       routing_table.push_front(entry);
     }

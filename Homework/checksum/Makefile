@@ -33,6 +33,14 @@ checksum: main.o hal.o $(OBJS)
 std: std.o main.o hal.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
+
+target_platform ?= netns
+
+-include $(LAB_ROOT)/config/$(target_platform)/my123/r1/Makefile
+-include $(LAB_ROOT)/config/$(target_platform)/my123/r2/Makefile
+-include $(LAB_ROOT)/config/$(target_platform)/my123/r3/Makefile
+
+
 all: checksum
 
 clean: clean_share

@@ -83,7 +83,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   uint32_t ip_head_length = ip_head_len(packet);
   if (!validateUDPChecksum(packet + ip_head_length)) {
 #if DEBUG
-    printf("UDE checksum wrong\n");
+    printf("UDP checksum wrong\n");
 #endif
     return false;
   }

@@ -4,7 +4,9 @@
 #include <stdio.h>
 
 #include "checksum.h"
-#include "board.h"
+
+in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0101a8c0, 0x0103a8c0, 0x0102000a,
+                                     0x0103000a};
 
 uint8_t packet[1024];
 

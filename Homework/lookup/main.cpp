@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0101a8c0, 0x0103a8c0, 0x0102000a,
+                                     0x0103000a};
+
 extern void update(bool insert, RoutingTableEntry entry);
 extern bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index);
 char buffer[1024];
